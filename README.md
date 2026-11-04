@@ -33,4 +33,4 @@ python3 sortkeeper.py --cli --undo [FOLDER]    # undo last run
 
 ## Releasing a new version
 
-Push a tag such as `v1.0.1`. GitHub Actions builds the Windows, macOS and Linux files and attaches them to a new release. The download links above always point to the latest release.
+Change `APP_VERSION` in `sortkeeper.py` (for example to `1.0.1`) and push to `main`. GitHub Actions builds the Windows, macOS and Linux files and publishes them as release `v1.0.1`. The download links above always point to the latest release.

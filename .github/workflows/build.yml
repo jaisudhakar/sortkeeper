@@ -1,7 +1,10 @@
-# Builds SortKeeper for Windows, macOS and Linux.
+# Builds SortKeeper for Windows, macOS and Linux, then publishes a GitHub Release.
 #
-# - Push a tag like v1.0.0  -> builds all three and publishes them as a GitHub Release.
-# - Actions tab -> "Build SortKeeper" -> "Run workflow" -> builds only (files appear under Artifacts).
+# Runs automatically when sortkeeper.py (or this file) changes on main, or when a v* tag
+# is pushed. You can also start it by hand: Actions tab -> "Build SortKeeper" -> "Run workflow".
+#
+# The release tag comes from APP_VERSION in sortkeeper.py (e.g. 1.0.0 -> v1.0.0).
+# To ship a new version, bump APP_VERSION and push.
 #
 # Release file names have no version number, so these links always point to the newest release:
 #   https://github.com/jaisudhakar/sortkeeper/releases/latest/download/SortKeeper-windows.exe
@@ -12,10 +15,18 @@ name: Build SortKeeper
 on:
   workflow_dispatch:
   push:
+    branches: [main]
+    paths:
+      - sortkeeper.py
+      - .github/workflows/build.yml
     tags: ["v*"]
 
 permissions:
   contents: write
+
+concurrency:
+  group: build-sortkeeper
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -68,8 +79,44 @@ jobs:
           name: ${{ matrix.out }}
           path: ${{ matrix.out }}
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from sortkeeper.py
+        id: ver
+        run: |
+          v=$(grep -m1 -oP '^APP_VERSION\s*=\s*"\K[^"]+' sortkeeper.py)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Version: $v"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+
+      - name: List files
+        run: ls -la files
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.out }}
+          tag_name: v${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: SortKeeper ${{ steps.ver.outputs.version }}
+          make_latest: true
+          overwrite_files: true
+          body: |
+            Organize your Downloads folder in one click: sort files by type, catch duplicates, undo anytime. 100% local, no account.
+
+            **Downloads**
+            - Windows 10+: `SortKeeper-windows.exe`
+            - macOS (Apple Silicon): `SortKeeper-macos.zip`
+            - Ubuntu 22.04+ / Linux x64: `SortKeeper-linux-x64` (run `chmod +x` first)
+
+            **macOS:** the app isn't signed with an Apple developer certificate. The first time, right-click SortKeeper, choose **Open**, then click **Open** again.
+
+            Website: https://onemandeveloper.com/sortkeeper/
+          files: files/*
