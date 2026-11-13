@@ -16,6 +16,10 @@ Website: https://onemandeveloper.com/sortkeeper/
 
 **Linux:** make the file executable first: `chmod +x SortKeeper-linux-x64 && ./SortKeeper-linux-x64`
 
+## Support
+
+SortKeeper is free, with no ads and no paid tier. If it saves you time, you can support it at https://onemandeveloper.com/sortkeeper/#support, or just star this repo.
+
 ## Run from source
 
 ```

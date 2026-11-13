@@ -40,7 +40,8 @@ import time
 from collections import defaultdict
 
 APP_NAME = "SortKeeper"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
+SUPPORT_URL = "https://onemandeveloper.com/sortkeeper/?ref=app#support"
 HISTORY_FILE = ".sortkeeper_history.json"
 DUP_FOLDER = "Duplicates"
 
@@ -362,6 +363,8 @@ def run_cli(args):
     hist.append({"time": time.strftime("%Y-%m-%d %H:%M:%S"), "moves": moves})
     save_history(folder, hist)
     print(f"Moved {len(moves)} file(s). Undo with --undo.")
+    if moves:
+        print(f"\nSaved you time? SortKeeper is free. Support it here: {SUPPORT_URL}")
 
 
 # --------------------------------------------------------------------------
@@ -369,6 +372,7 @@ def run_cli(args):
 # --------------------------------------------------------------------------
 def run_gui():
     import tkinter as tk
+    import webbrowser
     from tkinter import ttk, filedialog, messagebox
 
     if platform.system() == "Windows":
@@ -386,6 +390,7 @@ def run_gui():
     MUTED = "#A8999A"
     ACCENT = "#B3122E"
     ACCENT_H = "#D11A3A"
+    GOLD = "#F2C57C"
     SANS = "Segoe UI" if platform.system() == "Windows" else ("SF Pro Text" if platform.system() == "Darwin" else "Ubuntu")
 
     def F(size, weight="normal"):
@@ -533,6 +538,9 @@ def run_gui():
             self.btn_undo.pack(side="right", padx=8)
             self.btn_open = self._btn(bot, "Open folder", lambda: open_in_file_manager(self.folder))
             self.btn_open.pack(side="right")
+            self.btn_support = self._btn(bot, "\u2665 Support", self.support)
+            self.btn_support.configure(fg=GOLD)
+            self.btn_support.pack(side="right", padx=(0, 8))
 
             status = tk.Frame(self.root, bg=BG)
             status.pack(fill="x", padx=22, pady=(0, 14))
@@ -540,8 +548,9 @@ def run_gui():
             self.pb.pack(fill="x")
             self.lbl_status = tk.Label(status, text="", font=F(9), fg=MUTED, bg=BG, anchor="w")
             self.lbl_status.pack(fill="x", pady=(6, 0))
-            foot = tk.Label(status, text=f"v{APP_VERSION} · 100% local · no account · onemandeveloper.com",
-                            font=F(8), fg="#6B5F60", bg=BG, anchor="e")
+            foot = tk.Label(status, text=f"v{APP_VERSION} · free forever · 100% local · onemandeveloper.com",
+                            font=F(8), fg="#6B5F60", bg=BG, anchor="e", cursor="hand2")
+            foot.bind("<Button-1>", lambda e: self.support())
             foot.place(relx=1.0, rely=1.0, anchor="se")
             self._set_folder_label()
 
@@ -608,6 +617,23 @@ def run_gui():
                                 "n": 0, "total": counts[c], "col": col}
 
         # ---------- actions ----------
+        def support(self):
+            try:
+                webbrowser.open(SUPPORT_URL)
+            except Exception:
+                messagebox.showinfo(APP_NAME, f"Support SortKeeper at:\n{SUPPORT_URL}")
+
+        def _nudge_support(self):
+            """After a successful sort, gently highlight the Support button for a few seconds."""
+            b = self.btn_support
+            b._base, b._hover = GOLD, "#F7D49A"
+            b.configure(bg=GOLD, fg="#140C0D")
+
+            def back():
+                b._base, b._hover = PANEL2, LINE
+                b.configure(bg=PANEL2, fg=GOLD)
+            self.root.after(6000, back)
+
         def _set_folder_label(self):
             p = self.folder
             self.lbl_folder.configure(text=("…" + p[-40:]) if len(p) > 41 else p)
@@ -766,7 +792,10 @@ def run_gui():
             msg = f"Done! Sorted {len(self.moves)} files."
             if self.errors:
                 msg += f" {self.errors} couldn't be moved (in use or no permission)."
-            self.lbl_status.configure(text=msg + " Use Undo last to put everything back.")
+            self.lbl_status.configure(text=msg + " Use Undo last to put everything back."
+                                      + (" Saved you time? Tap \u2665 Support." if self.moves else ""))
+            if self.moves:
+                self._nudge_support()
             self.lbl_sorter.configure(text="Last run: just now")
             self.plan_done = True
             self._set_busy(False)
